@@ -1,6 +1,6 @@
 # Buncombe County Property Tax Appeal Tool
 
-A free alternative to paid comp-report services ($99+). Pulls comparable sales directly from Buncombe County's public GIS data, scores them by similarity to your property, and generates a self-contained HTML report with:
+A free alternative to paid comp-report services. Pulls comparable sales directly from Buncombe County's public GIS data, scores them by similarity to your property, and generates a self-contained HTML report with:
 
 - **Comparable sales table** — filtered, deduplicated, ranked by similarity score
 - **Assessment ratio analysis** — shows assessed ÷ sale price for each comp; flags properties assessed above their sale price
