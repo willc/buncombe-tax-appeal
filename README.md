@@ -85,7 +85,7 @@ Output files are self-contained HTML. Open in any browser; use File → Print �
 | `--condition` | `N` | Condition code (R/G/N/F/P/U) |
 | `--pool-value` | `0` | Pool assessed value |
 | `--yard-items` | `0` | Other yard item assessed values |
-| `--output` | auto | Output HTML filename |
+| `--output` | auto | Override the output HTML filename |
 
 Grade analysis section only appears in the full report when `--grade`, `--sqft`, and `--year-built` are all provided.
 
@@ -98,7 +98,7 @@ Grade analysis section only appears in the full report when `--grade`, `--sqft`,
 **Comp filtering:**
 - Same neighborhood code (broadens to AppraisalArea if fewer than 5 results)
 - Building value within ±55% of subject (filters out incomparable properties)
-- Class 100, Improved = Y (residential improved only)
+- Class 100, Improved = Y, BuildingValue > 0 (residential improved only; excludes vacant lots)
 - One sale per PIN, most recent (deduplication)
 
 **Similarity score (0–100):**
