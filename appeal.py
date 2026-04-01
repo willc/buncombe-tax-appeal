@@ -59,7 +59,7 @@ def prop_address(attrs):
     pre    = attrs.get("StreetPrefix", "").strip()
     name   = attrs.get("StreetName", "").strip()
     stype  = attrs.get("StreetType", "").strip()
-    suf    = attrs.get("StreetPostDirection", "").strip()
+    suf    = (attrs.get("StreetPostDirection") or "").strip()
     parts  = [p for p in [num, pre, name, stype, suf] if p]
     return " ".join(parts)
 
@@ -112,6 +112,7 @@ def find_comp_candidates(subject):
         f" AND Stamps >= {MIN_STAMPS}"
         f" AND Class = '100'"
         f" AND Improved = 'Y'"
+        f" AND CAST(BuildingValue AS INTEGER) > 0"
         f" AND CAST(BuildingValue AS INTEGER) BETWEEN {bv_lo} AND {bv_hi}"
     )
 
@@ -478,11 +479,12 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
     # ---- Appeal analysis bullets ----
     bullets = []
     if median_price and median_price < subj_assessed:
-        over_pct = (subj_assessed - median_price) / median_price * 100
+        over_pct = (subj_assessed - median_price) / subj_assessed * 100
         bullets.append(
-            f"The <strong>median sale price</strong> of the {len(comps_scored)} filtered comparable "
-            f"properties is <strong>{fmt_money(median_price)}</strong> — "
-            f"<strong>{over_pct:.1f}% below</strong> your 2026 assessed value of {fmt_money(subj_assessed)}."
+            f"The <strong>median time-adjusted sale price</strong> of the {len(comps_scored)} filtered "
+            f"comparable properties is <strong>{fmt_money(median_price)}</strong> — "
+            f"your 2026 assessed value of {fmt_money(subj_assessed)} is "
+            f"<strong>{over_pct:.1f}% above</strong> the median comp sale."
         )
     if len(above_assessed) > 0:
         bullets.append(
