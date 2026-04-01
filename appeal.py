@@ -534,42 +534,43 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
     <ol class="steps">
       <li>
         <strong>Get your property card first.</strong>
-        Open <a href="{prop_card}" target="_blank">your property record card</a> and screenshot or print it.
-        Note your building quality grade, condition code, year built, sq ft, and style code.
+        Open <a href="{prop_card}" target="_blank">your property record card</a> and note your building
+        quality grade, condition code, year built, sq ft, and style code.
         These are the inputs to the cost model — any error here is grounds for appeal.
       </li>
       <li>
         <strong>Pick your 3–5 best comps from the table below.</strong>
         The strongest comps are properties that (a) sold recently, (b) are similar in size and quality,
-        and (c) sold for less than your assessed value (marked ★). Also check their property cards to
-        confirm they have similar sq ft, grade, and features to yours.
+        and (c) sold for less than your assessed value (marked ★). Check their property cards to
+        confirm they have similar sq ft, grade, and features to yours. Note the PIN for each one.
       </li>
       <li>
-        <strong>Calculate the implied value.</strong>
-        For each strong comp: <em>comp sale price ÷ comp assessed value × your assessed value</em>.
-        This gives a "what your property should be worth if assessed at the same ratio as comp."
-        Average these to get your requested value. Example: if a comp sold for $700K but was assessed at $607K
-        (86.7% ratio), and your property is assessed at $837K, the implied value = $837K × 86.7% = $725K.
+        <strong>Calculate your requested value.</strong>
+        For each strong comp: <em>your assessed value × (comp sale price ÷ comp assessed value)</em>.
+        This is the value your property <em>would</em> be if assessed at the same ratio as the comp.
+        Average these to get your requested value. Example: if a comp sold for $700K but was assessed
+        at $607K (86.7% ratio) and your property is assessed at {fmt_money(subj_assessed)},
+        the implied value = {fmt_money(subj_assessed)} × 86.7% = {fmt_money(int(subj_assessed * 0.867))}.
       </li>
       <li>
-        <strong>Document any property-specific issues.</strong>
-        Physical problems that lower market value: dated kitchen/baths, old roof, HVAC end-of-life,
-        drainage issues, noise/traffic, slope/access problems, easements, or deferred maintenance.
-        Take photos. These are functional or economic obsolescence and support a lower condition code.
+        <strong>Generate your upload document.</strong>
+        Run this tool with the <code>--upload</code> flag to produce a clean, professional PDF-ready
+        document you can attach to your online appeal. It contains your comp table, summary stats,
+        and requested value — with no internal notes.
       </li>
       <li>
-        <strong>File your appeal.</strong>
-        Use the <a href="https://tax.buncombenc.gov/" target="_blank">Buncombe County Tax Appeal Portal</a>.
-        State your requested value, list your comp PINs and sale prices, and note any property-card errors.
-        You can also attend an <strong>Appeal Clinic</strong> (free, offered March–April 2026 at multiple locations)
-        where assessors review your evidence in person.
+        <strong>File online at the Buncombe County Tax Appeal Portal.</strong>
+        Go to <a href="https://tax.buncombenc.gov/" target="_blank">tax.buncombenc.gov</a>.
+        Enter your requested value, briefly describe your reason (e.g., "Assessed value not supported
+        by comparable sales — see attached analysis"), and upload your document.
+        The portal accepts PDF; print your upload document to PDF from your browser first.
       </li>
       <li>
-        <strong>At the Board of Equalization &amp; Review hearing</strong>, lead with the comps.
-        Say: <em>"Properties similar to mine in the same neighborhood sold for $X–$Y during 2022–2025.
-        My assessed value of {fmt_money(subj_assessed)} is not supported by market evidence. I am
-        requesting a reduction to $[your number]."</em>
-        Then present any property-card errors as secondary support.
+        <strong>In the "Reason for Appeal" field</strong>, keep it short and factual:
+        <em>"The 2026 assessed value of {fmt_money(subj_assessed)} is not supported by recent
+        arm's-length sales of comparable properties in neighborhood {neighborhood}.
+        Comparable sales since 2022 indicate a market value of approximately $[your number].
+        Supporting comp analysis attached."</em>
       </li>
     </ol>
     """
@@ -727,9 +728,9 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
 <!-- ======================================================= -->
 <div style="background:#fff0f0;border-left:4px solid #c0392b;border-radius:6px;padding:14px 20px;margin-bottom:20px">
   <strong style="color:#c0392b">⚠ Important before you file:</strong>
-  The Board of Equalization &amp; Review has authority to <strong>raise, lower, or confirm</strong> your
-  assessed value — not just lower it. If you file and the board finds your property is
-  <em>under</em>-assessed relative to comparable sales, they can increase it.
+  The county has authority to <strong>raise, lower, or confirm</strong> your assessed value — not just
+  lower it. If the evidence shows your property is <em>under</em>-assessed relative to comparable sales,
+  filing could result in an increase.
   Review your comps carefully: if most comparable properties sold <em>above</em> your current
   assessed value, filing an appeal carries risk. Only file if the evidence clearly supports a reduction.
 </div>
@@ -898,10 +899,12 @@ def generate_submission_html(subject, comps_scored, output_path, card=None, requ
         req_html = f"""
         <div class="section req">
           <h2>Requested Value</h2>
-          <p>Based on the comparable sales evidence and quality grade analysis above, I respectfully
-          request a reduction in the assessed value of <strong>{subj_addr}</strong>
-          (PIN {subj_pin}) from <strong>{fmt_money(subj_assessed)}</strong>
-          to <strong>{fmt_money(int(req_val))}</strong>.</p>
+          <p>Based on the comparable sales evidence above, I respectfully request a reduction in the
+          assessed value of <strong>{subj_addr}</strong> (PIN {subj_pin})
+          from <strong>{fmt_money(subj_assessed)}</strong>
+          to <strong>{fmt_money(int(req_val))}</strong>,
+          which reflects the median time-adjusted sale price of comparable properties
+          in neighborhood {neighborhood}.</p>
         </div>"""
 
     html = f"""<!DOCTYPE html>
@@ -962,7 +965,7 @@ def generate_submission_html(subject, comps_scored, output_path, card=None, requ
 
   <div class="letterhead">
     <h1>Property Tax Appeal — Comparable Sales Analysis</h1>
-    <div class="sub">Buncombe County 2026 Reappraisal &nbsp;·&nbsp; Prepared {today}</div>
+    <div class="sub">Buncombe County 2026 Reappraisal &nbsp;·&nbsp; Prepared {today} &nbsp;·&nbsp; Submitted via <a href="https://tax.buncombenc.gov/" style="color:#444">tax.buncombenc.gov</a></div>
   </div>
 
   <div class="prop-block">
@@ -992,7 +995,9 @@ def generate_submission_html(subject, comps_scored, output_path, card=None, requ
     properties in Buncombe County neighborhood <strong>{neighborhood}</strong>.
     The following analysis presents {len(comps_scored)} qualified comparable sales from the
     county's public deed records since January 2022, derived from NC Revenue Stamps
-    (NC Gen. Stat. § 105-228.30).</p>
+    (NC Gen. Stat. § 105-228.30). Sale prices have been time-adjusted to the January 1, 2026
+    appraisal date using the implied annual appreciation rate of {rate*100:.1f}%/yr
+    back-calculated from this neighborhood's comp data.</p>
   </div>
 
   <!-- ================================================ -->
@@ -1068,8 +1073,9 @@ def main():
     parser.add_argument("--condition",  default="N", help="Condition code (R/G/N/F/P/U)")
     parser.add_argument("--pool-value", type=int, default=0, dest="pool_value", help="Pool assessed value (default: 0)")
     parser.add_argument("--yard-items",  type=int, default=0,    dest="yard_items",  help="Other yard item assessed values")
-    parser.add_argument("--submission",  action="store_true",                        help="Generate clean submission document (no internal guidance)")
-    parser.add_argument("--request",     type=int, default=None,                     help="Requested assessed value for submission doc")
+    parser.add_argument("--upload",      action="store_true",                        help="Generate clean upload document for the online appeal portal (no internal guidance)")
+    parser.add_argument("--submission",  action="store_true",                        help=argparse.SUPPRESS)  # legacy alias for --upload
+    parser.add_argument("--request",     type=int, default=None,                     help="Requested assessed value to include in the upload document")
     args = parser.parse_args()
     COMP_SALE_START_DATE = args.since
 
@@ -1145,13 +1151,17 @@ def main():
         median_r = sorted(adj_ratios)[len(adj_ratios)//2]
         print(f"  Median assessment ratio (adj.): {median_r*100:.1f}%  (100% = assessed exactly at adj. sale price)")
 
-    print(f"\n  Generating report...")
+    upload_mode = args.upload or args.submission   # --submission is a legacy alias
+
+    print(f"\n  Generating {'upload document' if upload_mode else 'report'}...")
 
     # Auto-name output file from address if not specified
+    safe = (address or subject.get("Address","report")).replace(" ", "_").replace(",","").lower()
     if args.output:
         out = Path(args.output)
+    elif upload_mode:
+        out = Path(f"appeal_{safe}_upload.html")
     else:
-        safe = (address or subject.get("Address","report")).replace(" ", "_").replace(",","").lower()
         out = Path(f"appeal_{safe}.html")
 
     # Only run grade analysis if at least grade + sqft + year_built are provided
@@ -1166,13 +1176,15 @@ def main():
             "yard_items": args.yard_items,
         }
 
-    if args.submission:
+    if upload_mode:
         generate_submission_html(subject, comps_scored, out, card=card,
                                  requested_value=args.request, rate=rate)
-        print(f"  Saved (submission): {out.resolve()}")
+        print(f"  Saved (upload doc): {out.resolve()}")
+        print(f"  → Print to PDF from your browser, then attach to your online appeal at tax.buncombenc.gov")
     else:
         generate_html(subject, comps_scored, out, card=card, rate=rate)
-        print(f"  Saved: {out.resolve()}")
+        print(f"  Saved (full report): {out.resolve()}")
+        print(f"  → Run with --upload to generate the clean version to attach to your online appeal")
     print(f"  Open:  open '{out.resolve()}'")
     print()
 
