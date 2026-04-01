@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+appeal_*.html
+*.pdf
+.DS_Store
