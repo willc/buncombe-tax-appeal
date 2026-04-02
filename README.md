@@ -16,11 +16,20 @@ Both reports include:
 
 ## Install
 
+**Mac/Linux:**
 ```bash
 git clone https://github.com/willc/buncombe-tax-appeal
 cd buncombe-tax-appeal
 python3 -m venv venv
 venv/bin/pip install requests
+```
+
+**Windows:**
+```bat
+git clone https://github.com/willc/buncombe-tax-appeal
+cd buncombe-tax-appeal
+python -m venv venv
+venv\Scripts\pip install requests
 ```
 
 ## Update
@@ -34,14 +43,16 @@ git pull
 
 ## Usage
 
-**Basic — full internal report:**
+**Mac/Linux:**
 ```bash
 venv/bin/python3 appeal.py "123 Your Street, Asheville"
+venv/bin/python3 appeal.py "123 Your Street" --upload
 ```
 
-**Generate the upload document (attach this to your online appeal):**
-```bash
-venv/bin/python3 appeal.py "123 Your Street" --upload
+**Windows:**
+```bat
+venv\Scripts\python appeal.py "123 Your Street, Asheville"
+venv\Scripts\python appeal.py "123 Your Street" --upload
 ```
 
 **With property card details (adds grade challenge section to full report):**

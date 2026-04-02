@@ -1187,7 +1187,8 @@ def main():
         generate_html(subject, comps_scored, out, card=card, rate=rate)
         print(f"  Saved (full report): {out.resolve()}")
         print(f"  → Run with --upload to generate the clean version to attach to your online appeal")
-    print(f"  Open:  open '{out.resolve()}'")
+    open_cmd = "start" if sys.platform == "win32" else "open"
+    print(f"  Open:  {open_cmd} '{out.resolve()}'")
     print()
 
 
