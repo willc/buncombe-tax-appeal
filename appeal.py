@@ -464,7 +464,7 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
         <tr>
           <td style="text-align:center;color:#888">{i+1}</td>
           <td><strong>{prop_address(c)}</strong><br>
-              <span style="font-size:0.8em;color:#999">Asheville · {c.get('NeighborhoodCode','')}</span></td>
+              <span style="font-size:0.8em;color:#999">{c.get('CityName','').title()} · {c.get('NeighborhoodCode','')}</span></td>
           <td>{fmt_date(c.get('DeedDate'))}</td>
           <td style="text-align:right">{fmt_money(c['_sale_price'])}</td>
           <td style="text-align:right"><strong>{adj_label}</strong></td>
@@ -843,7 +843,7 @@ def generate_submission_html(subject, comps_scored, output_path, card=None, requ
         rows += f"""
         <tr>
           <td>{i+1}</td>
-          <td><strong>{prop_address(c)}</strong>, Asheville, NC</td>
+          <td><strong>{prop_address(c)}</strong>, {c.get('CityName','').title()}, NC</td>
           <td>{c.get('PIN','')}</td>
           <td>{fmt_date(c.get('DeedDate'))}</td>
           <td style="text-align:right">{fmt_money(c['_sale_price'])}</td>
