@@ -53,6 +53,37 @@ def arcgis_query(where, out_fields="*", order_by=None, max_records=200):
     return [f["attributes"] for f in data.get("features", [])]
 
 
+# Municipality codes from Buncombe County GIS (City field = jurisdiction, not mailing city)
+CITY_CODES = {
+    "CAS": "Asheville",
+    "CBF": "Biltmore Forest",
+    "CBM": "Black Mountain",
+    "CMT": "Montreat",
+    "CWO": "Woodfin",
+    "CWV": "Weaverville",
+}
+# ZIP → community name for unincorporated areas
+ZIP_CITIES = {
+    "28715": "Candler",
+    "28730": "Fairview",
+    "28748": "Leicester",
+    "28778": "Swannanoa",
+    "28704": "Arden",
+    "28732": "Fletcher",
+    "28711": "Black Mountain",
+}
+
+
+def prop_city(attrs):
+    """Return the physical city name for a property (not the owner's mailing city)."""
+    code = (attrs.get("City") or "").strip()
+    if code in CITY_CODES:
+        return CITY_CODES[code]
+    # Unincorporated — fall back to ZIP-based community name
+    zipcode = str(attrs.get("Zipcode") or "").strip()[:5]
+    return ZIP_CITIES.get(zipcode, "Asheville")
+
+
 def prop_address(attrs):
     """Build property address from component fields (not the mailing Address field)."""
     num    = attrs.get("HouseNumber", "").strip()
@@ -420,7 +451,7 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
     neighborhood = subject.get("NeighborhoodCode", "")
     prop_card    = subject.get("PropCard", "")
     subj_addr    = (f"{subject.get('HouseNumber','')} {subject.get('StreetName','')} "
-                   f"{subject.get('StreetType','')}, {subject.get('CityName','')}, NC "
+                   f"{subject.get('StreetType','')}, {prop_city(subject)}, NC "
                    f"{subject.get('Zipcode','')}").strip()
 
     # Property card data (optional)
@@ -464,7 +495,7 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
         <tr>
           <td style="text-align:center;color:#888">{i+1}</td>
           <td><strong>{prop_address(c)}</strong><br>
-              <span style="font-size:0.8em;color:#999">{c.get('CityName','').title()} · {c.get('NeighborhoodCode','')}</span></td>
+              <span style="font-size:0.8em;color:#999">{prop_city(c)} · {c.get('NeighborhoodCode','')}</span></td>
           <td>{fmt_date(c.get('DeedDate'))}</td>
           <td style="text-align:right">{fmt_money(c['_sale_price'])}</td>
           <td style="text-align:right"><strong>{adj_label}</strong></td>
@@ -821,7 +852,7 @@ def generate_submission_html(subject, comps_scored, output_path, card=None, requ
     neighborhood = subject.get("NeighborhoodCode", "")
     subj_pin     = subject.get("PIN", "")
     subj_addr    = (f"{subject.get('HouseNumber','')} {subject.get('StreetName','')} "
-                   f"{subject.get('StreetType','')}, {subject.get('CityName','')}, NC "
+                   f"{subject.get('StreetType','')}, {prop_city(subject)}, NC "
                    f"{subject.get('Zipcode','')}").strip()
 
     today = datetime.now().strftime("%B %d, %Y")
@@ -843,7 +874,7 @@ def generate_submission_html(subject, comps_scored, output_path, card=None, requ
         rows += f"""
         <tr>
           <td>{i+1}</td>
-          <td><strong>{prop_address(c)}</strong>, {c.get('CityName','').title()}, NC</td>
+          <td><strong>{prop_address(c)}</strong>, {prop_city(c)}, NC</td>
           <td>{c.get('PIN','')}</td>
           <td>{fmt_date(c.get('DeedDate'))}</td>
           <td style="text-align:right">{fmt_money(c['_sale_price'])}</td>
@@ -1097,7 +1128,7 @@ def main():
 
     assessed = int(subject.get("TotalMarketValue") or 0)
     print(f"found")
-    print(f"  Address:      {subject.get('HouseNumber','')} {subject.get('StreetName','')} {subject.get('StreetType','')}, {subject.get('CityName','')}")
+    print(f"  Address:      {subject.get('HouseNumber','')} {subject.get('StreetName','')} {subject.get('StreetType','')}, {prop_city(subject)}")
     print(f"  PIN:          {subject.get('PIN')}")
     print(f"  Assessed:     ${assessed:,}")
     print(f"  Bldg Value:   ${int(subject.get('BuildingValue') or 0):,}")
