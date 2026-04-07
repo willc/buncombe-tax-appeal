@@ -485,10 +485,11 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
         adj_ratio = c.get("_adj_ratio")
         is_post_appraisal = c.get("_years", 1) == 0
         adj_label = "post-appraisal" if is_post_appraisal else fmt_money(c["_adj_price"])
-        if adj_ratio and adj_ratio < 0.95:
-            flag = '<span title="Time-adjusted price below assessed value — strong comp" style="color:#27ae60;margin-left:4px">★</span>'
-        elif adj_ratio and adj_ratio > 1.10:
-            flag = '<span title="Assessed above time-adjusted price — supports your appeal" style="color:#c0392b;margin-left:4px">▲</span>'
+        adj_price = c["_adj_price"]
+        if not is_post_appraisal and adj_price < subj_assessed:
+            flag = '<span title="Sold below your assessed value — supports lower assessment" style="color:#27ae60;margin-left:4px">★</span>'
+        elif adj_ratio and adj_ratio > 1.05:
+            flag = '<span title="County assessed above time-adjusted sale price — systemic over-assessment" style="color:#c0392b;margin-left:4px">▲</span>'
         else:
             flag = ""
         rows += f"""
@@ -813,8 +814,8 @@ def generate_html(subject, comps_scored, output_path, card=None, rate=0.0):
 </div>
 
 <p class="note">
-  <strong>★ Green</strong> = time-adjusted price below assessed value — supports lower assessment.
-  <strong>▲ Red</strong> = assessed above time-adjusted price.<br>
+  <strong>★ Green</strong> = comp sold below your assessed value — supports lower assessment.
+  <strong>▲ Red</strong> = county assessed this comp above its time-adjusted sale price — systemic over-assessment.<br>
   <strong>Adj. to Jan 2026</strong> applies an implied <strong>{rate*100:.1f}%/yr</strong> market appreciation rate
   (back-calculated from the median relationship between comp assessed values and their actual sale prices).
   Post-appraisal sales are marked "post-appraisal" and need no adjustment.
