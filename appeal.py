@@ -95,20 +95,104 @@ def prop_address(attrs):
     return " ".join(parts)
 
 
+# Full street-type words → USPS abbreviations used in the county StreetType field
+STREET_TYPES = {
+    "ALLEY": "ALY", "AVENUE": "AVE", "AV": "AVE", "BOULEVARD": "BLVD", "BRANCH": "BR",
+    "CIRCLE": "CIR", "CRESCENT": "CRES", "COURT": "CT", "DRIVE": "DR", "EXTENSION": "EXT",
+    "GLEN": "GLN", "HEIGHTS": "HTS", "LANE": "LN", "LANDING": "LNDG", "MEADOWS": "MDWS",
+    "PARKWAY": "PKWY", "PLACE": "PL", "ROAD": "RD", "RIDGE": "RDG", "STREET": "ST",
+    "TERRACE": "TER", "TRAIL": "TRL", "VIEW": "VW",
+}
+STREET_ABBRS = set(STREET_TYPES.values()) | {"LOOP", "PARK", "RUN", "WAY"}
+DIRECTIONS = {"N": "N", "S": "S", "E": "E", "W": "W",
+              "NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
+
+
+def parse_address(address):
+    """Split '4 Parker Rd, Asheville NC 28803' into components."""
+    tokens = address.upper().replace(",", " ").replace(".", " ").split()
+    num = tokens.pop(0) if tokens and tokens[0].isdigit() else None
+    prefix = tokens.pop(0) if len(tokens) > 1 and tokens[0] in DIRECTIONS else ""
+    prefix = DIRECTIONS.get(prefix, "")
+
+    # Street type = last type-looking token after the first name word;
+    # anything after it (and an optional post-direction) is city/state/zip.
+    stype, locality = "", []
+    type_idx = None
+    for i in range(1, len(tokens)):
+        t = STREET_TYPES.get(tokens[i], tokens[i])
+        if t in STREET_ABBRS:
+            type_idx = i
+    if type_idx is not None:
+        stype = STREET_TYPES.get(tokens[type_idx], tokens[type_idx])
+        name_tokens = tokens[:type_idx]
+        locality = tokens[type_idx + 1:]
+    else:
+        name_tokens = tokens
+    postdir = ""
+    if locality and locality[0] in DIRECTIONS:
+        postdir = DIRECTIONS[locality.pop(0)]
+
+    zipcode = next((t for t in locality if t.isdigit() and len(t) == 5), "")
+    city = " ".join(t for t in locality if not t.isdigit() and t != "NC")
+    return {"num": num, "prefix": prefix, "name": " ".join(name_tokens),
+            "type": stype, "postdir": postdir, "city": city, "zip": zipcode}
+
+
+def _sql_str(s):
+    return s.replace("'", "''")
+
+
 def lookup_by_address(address):
-    parts = address.strip().upper().split()
-    num = parts[0] if parts[0].isdigit() else None
-    name_part = parts[1] if len(parts) > 1 else parts[0]
-    where = f"StreetName LIKE '{name_part}%'"
-    if num:
-        where += f" AND HouseNumber = '{num}'"
-    results = arcgis_query(where)
-    if not results:
+    a = parse_address(address)
+    if not a["name"]:
         return None
-    for r in results:
-        if r.get("HouseNumber", "") == (num or "") and name_part in r.get("StreetName", ""):
-            return r
-    return results[0]
+    first_word = a["name"].split()[0]
+    where = f"StreetName LIKE '{_sql_str(first_word)}%'"
+    if a["num"]:
+        where += f" AND HouseNumber = '{_sql_str(a['num'])}'"
+    results = arcgis_query(where)
+
+    # Strict filters: street name and (if given) type/directions must match.
+    def norm(v):
+        return (v or "").strip().upper()
+    cands = [r for r in results if norm(r.get("StreetName")) == a["name"]]
+    if a["type"]:
+        cands = [r for r in cands if norm(r.get("StreetType")) == a["type"]]
+    if a["prefix"]:
+        cands = [r for r in cands if norm(r.get("StreetPrefix")) == a["prefix"]]
+    if a["postdir"]:
+        cands = [r for r in cands if norm(r.get("StreetPostDirection")) == a["postdir"]]
+
+    # Soft filters: narrow by ZIP / city only if that leaves something.
+    if len(cands) > 1 and a["zip"]:
+        narrowed = [r for r in cands if str(r.get("Zipcode") or "")[:5] == a["zip"]]
+        cands = narrowed or cands
+    if len(cands) > 1 and a["city"]:
+        narrowed = [r for r in cands if prop_city(r).upper() == a["city"]]
+        cands = narrowed or cands
+
+    if not cands:
+        if results:
+            print("\n  No exact match. Similar addresses found:")
+            for r in results[:10]:
+                print(f"    {prop_address(r)}, {prop_city(r)} {r.get('Zipcode','')}  (PIN {r.get('PIN','')})")
+            print("  Include the street type (Rd, Dr, ...) or use --pin.")
+        return None
+    if len(cands) == 1:
+        return cands[0]
+
+    # Still ambiguous (e.g. no street type given) — let the user pick.
+    print(f"\n  Multiple properties match '{address}':")
+    for i, r in enumerate(cands, 1):
+        print(f"    {i}. {prop_address(r)}, {prop_city(r)} {r.get('Zipcode','')}  (PIN {r.get('PIN','')})")
+    if not sys.stdin.isatty():
+        print("  Be more specific (street type, city, or ZIP) or use --pin.")
+        return None
+    while True:
+        choice = input(f"  Select 1-{len(cands)}: ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(cands):
+            return cands[int(choice) - 1]
 
 
 def lookup_by_pin(pin):
